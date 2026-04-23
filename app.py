@@ -9,19 +9,19 @@ st.set_page_config(page_title="아빠표 받아쓰기", page_icon="✏️")
 
 # --- 함수 정의 ---
 @st.cache_data(show_spinner=False)
-def generate_audio_bytes(text):
+def generate_audio_bytes(text, speed_option):
     mp3_fp = io.BytesIO()
-    # slow=True 옵션을 추가해서 속도를 늦춥니다.
-    tts = gTTS(text=", " + text, lang='ko', slow=True) 
+    # 선택된 옵션에 따라 slow 모드 결정
+    is_slow = True if speed_option == "느리게 (추천)" else False
+    
+    tts = gTTS(text=", " + text, lang='ko', slow=is_slow)
     tts.write_to_fp(mp3_fp)
     return mp3_fp.getvalue()
 
 def play_audio(audio_bytes):
     b64 = base64.b64encode(audio_bytes).decode()
-    # 밀리초 단위까지 정밀한 ID 생성
     unique_id = str(time.time()).replace('.', '')
     
-    # 브라우저가 매번 '완전히 새로운 객체'로 인식하도록 랜덤성을 부여한 HTML
     html_code = f"""
     <div id="wrapper_{unique_id}" style="display:none;">
         <audio autoplay="true">
@@ -29,7 +29,6 @@ def play_audio(audio_bytes):
         </audio>
     </div>
     """
-    # [개선] 별도의 컨테이너를 만들어 이전 오디오 엘리먼트를 확실히 밀어냅니다.
     st.components.v1.html(html_code, height=0)
 
 # --- 세션 상태 초기화 ---
@@ -41,11 +40,20 @@ if 'current_idx' not in st.session_state:
     st.session_state.current_idx = 0
 if 'last_played_idx' not in st.session_state:
     st.session_state.last_played_idx = -1
+if 'speed' not in st.session_state:
+    st.session_state.speed = "보통"
 
 # --- 1단계: 문제 입력 화면 (SETUP) ---
 if st.session_state.step == 'SETUP':
-    st.title("✏️ 2학년 1반 전유하 받아쓰기 준비")
-    st.write("공부할 문장들을 입력해 주세요.")
+    st.title("✏️ 덕현초 2학년 1반 예쁜 전유하 받아쓰기 준비")
+    st.write("공부할 문장을 입력하고, 읽기 속도를 선택해 주세요.")
+    
+    # [추가] 속도 선택 라디오 버튼
+    st.session_state.speed = st.radio(
+        "📢 읽기 속도를 선택하세요",
+        ["보통", "느리게"],
+        horizontal=True
+    )
     
     input_text = st.text_area("문장 입력 (엔터로 구분)", 
                              placeholder="예:\n날씨가 맑아요.\n공책을 샀어요.",
@@ -68,36 +76,29 @@ elif st.session_state.step == 'EXAM':
     total = len(st.session_state.quiz_list)
     current_sentence = st.session_state.quiz_list[idx]
     
-    # 음성 데이터 준비
-    audio_data = generate_audio_bytes(current_sentence)
+    # [수정] 음성 생성 시 저장된 속도 옵션을 함께 전달
+    audio_data = generate_audio_bytes(current_sentence, st.session_state.speed)
     
-    # [자동 재생] 인덱스가 바뀌면 무조건 재생
     if st.session_state.last_played_idx != idx:
         play_audio(audio_data)
         st.session_state.last_played_idx = idx
 
     st.title(f"✍️ 제 {idx + 1}번 문제")
+    st.write(f"⏱ 현재 모드: **{st.session_state.speed}**") # 현재 속도 표시
     st.progress((idx + 1) / total)
-    st.write("문장을 잘 듣고 종이에 적어보세요.")
     
-    # 다시 들려주기
     if st.button("🔊 다시 들려주기"):
         play_audio(audio_data)
     
     st.divider()
     
-    # --- [수정] 이전/다음 버튼 배치 ---
     col1, col2 = st.columns(2)
-    
     with col1:
-        # 1번 문제가 아닐 때만 '이전 문제' 버튼 표시
         if idx > 0:
             if st.button("⬅️ 이전 문제로"):
                 st.session_state.current_idx -= 1
-                # 인덱스가 줄어들면 다시 재생되도록 last_played_idx 초기화
                 st.session_state.last_played_idx = -1 
                 st.rerun()
-    
     with col2:
         if idx < total - 1:
             if st.button("다음 문제로 ➡️"):
