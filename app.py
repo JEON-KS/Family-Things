@@ -59,7 +59,7 @@ if st.session_state.step == 'SETUP':
     # 속도 선택 (이전 선택값 유지)
     speed_options = ["보통", "느리게"]
     st.session_state.speed = st.radio(
-        "📢 선생님의 목소리 속도를 골라주세요",
+        "📢 읽기 속도를 선택하세요",
         speed_options,
         index=speed_options.index(st.session_state.speed),
         horizontal=True
