@@ -11,8 +11,8 @@ st.set_page_config(page_title="아빠표 받아쓰기", page_icon="✏️")
 @st.cache_data(show_spinner=False)
 def generate_audio_bytes(text):
     mp3_fp = io.BytesIO()
-    # 목소리 안정성을 위해 기본 여성 톤 유지
-    tts = gTTS(text=", " + text, lang='ko')
+    # slow=True 옵션을 추가해서 속도를 늦춥니다.
+    tts = gTTS(text=", " + text, lang='ko', slow=True) 
     tts.write_to_fp(mp3_fp)
     return mp3_fp.getvalue()
 
