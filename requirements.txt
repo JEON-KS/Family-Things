@@ -1,6 +1,2 @@
-<<<<<<< HEAD
 streamlit
-=======
-streamlit
->>>>>>> 8e8a27fcbf9df9b49cec3b1f2ff1b3df3077cade
 gtts
